@@ -5,18 +5,15 @@ using System;
 public class SwipeManager : MonoBehaviour
 {
 
-
-    private bool IsDragging;
     private Vector2 _startTouch, _swipeLength;
     private float _swipeLengthX;
     [SerializeField] private Transform midCurvePointPos, lastCurvePointPos;
     private float midCurveNewPos, lastCurveNewPos;
     public PathManager _pathManager;
-
     private float minMidCurveBorder, maxMidCurveBorder;
     private float minLastCurveBorder, maxLastCurveBorder;
-    [Range(0, 2)]
-    [SerializeField] private float LastCurveBorder;
+    private bool IsDragged;
+    private bool IsBallKick;
     private void Start()
     {
         minMidCurveBorder = midCurvePointPos.position.x - 5;
@@ -25,29 +22,51 @@ public class SwipeManager : MonoBehaviour
         minLastCurveBorder = lastCurvePointPos.position.x - 2;
         maxLastCurveBorder = lastCurvePointPos.position.x + 2;
     }
-    private void Update()
+    public void BallKicked()
     {
-        #region Standalone Inputs
-        if (Input.GetMouseButtonDown(0))
+        if (IsBallKick == false)
         {
-            IsDragging = true;
-            _startTouch = Input.mousePosition;
-        }
-        else if (Input.GetMouseButtonUp(0))
-        {
-            IsDragging = false;
-            Reset();
+            IsBallKick = true;
             ObserverManager.KickBall?.Invoke();
         }
-        #endregion
+    }
+    private void Update()
+    {
+        if (IsBallKick == false)
+        {
+            #region Standalone Inputs
+            if (Input.GetMouseButtonDown(0))
+            {
+                _startTouch = Input.mousePosition;
+            }
+            else if (Input.GetMouseButtonUp(0))
+            {
+                Reset();
+            }
+            #endregion
+
+            // #region Mobile Inputs
+            // if (Input.touches.Length > 0)
+            // {
+            //     if (Input.touches[0].phase == TouchPhase.Began)
+            //     {
+            //         _startTouch = Input.mousePosition;
+            //     }
+            //     else if (Input.touches[0].phase == TouchPhase.Ended || Input.touches[0].phase == TouchPhase.Canceled)
+            //     {
+            //         Reset();
+            //     }
+            // }
+            // #endregion
+        }
     }
     public void OnMouseDrag()
     {
-        //calculate the distance
-        _swipeLength = Vector2.zero;
-
-        if (IsDragging)
+        if (IsBallKick == false)
         {
+            //calculate the distance
+            _swipeLength = Vector2.zero;
+
             if (Input.touches.Length > 0)//if there are more than 1 touch at the same time
             {
                 _swipeLength = Input.touches[0].position - _startTouch;
@@ -56,9 +75,12 @@ public class SwipeManager : MonoBehaviour
             {
                 _swipeLength = (Vector2)Input.mousePosition - _startTouch;
                 _swipeLengthX = Mathf.Clamp(_swipeLength.x, -20, 20);
+                ObserverManager.DragStarted?.Invoke();
+                IsDragged = true;
             }
+            SetCurvePos();
         }
-        SetCurvePos();
+
     }
     private void SetCurvePos()
     {
@@ -86,7 +108,7 @@ public class SwipeManager : MonoBehaviour
     private void Reset()
     {
         _startTouch = _swipeLength = Vector2.zero;
-        IsDragging = false;
+
     }
 
 
